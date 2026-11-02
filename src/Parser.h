@@ -36,6 +36,18 @@ public:
     explicit VariableASTNode(std::string name)
         : name(std::move(name)) {}
 };
+class UnaryASTNode : public ASTNode {
+public:
+    std::string op;
+    std::unique_ptr<ASTNode> operand;
+
+    UnaryASTNode(
+        std::string op,
+        std::unique_ptr<ASTNode> operand
+    )
+        : op(std::move(op)),
+          operand(std::move(operand)) {}
+};
 
 class BinaryASTNode : public ASTNode {
 public:
@@ -95,7 +107,18 @@ public:
           statements(std::move(statements)),
           elseStatements(std::move(elseStatements)) {}
 };
+class WhileASTNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> condition;
+    std::vector<std::unique_ptr<ASTNode>> statements;
 
+    WhileASTNode(
+        std::unique_ptr<ASTNode> condition,
+        std::vector<std::unique_ptr<ASTNode>> statements
+    )
+        : condition(std::move(condition)),
+          statements(std::move(statements)) {}
+};
 class Parser {
 public:
     explicit Parser(std::vector<Token> tokens);
@@ -127,6 +150,12 @@ private:
 
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseComparison();
+std::unique_ptr<ASTNode> parseOr();
+std::unique_ptr<ASTNode> parseAnd();
+std::unique_ptr<ASTNode> parseNot();
+
+std::unique_ptr<ASTNode> parseWhile();
+
     std::unique_ptr<ASTNode> parsePrimary();
     std::unique_ptr<ASTNode> parseTerm();
 

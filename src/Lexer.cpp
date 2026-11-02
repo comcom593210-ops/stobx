@@ -110,6 +110,24 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({
                     TokenType::IF, ident, tokenLine
                 });
+                } else if (ident == "and") {
+                tokens.push_back({
+                    TokenType::AND, ident, tokenLine
+                });
+} else if (ident == "or") {
+                tokens.push_back({
+                    TokenType::OR, ident, tokenLine
+                });
+} else if (ident == "not") {
+                tokens.push_back({
+                    TokenType::NOT, ident, tokenLine
+                });
+
+} else if (ident == "while") {
+                tokens.push_back({
+                    TokenType::WHILE, ident, tokenLine
+                });
+
             } else if (ident == "else") {
                 std::size_t savedCursor = cursor;
                 int savedLine = currentLine;

@@ -74,6 +74,7 @@ void Parser::synchronize() {
         peek().type != TokenType::PRI &&
         peek().type != TokenType::IF &&
         peek().type != TokenType::ELSE_IF &&
+        peek().type != TokenType::WHILE &&
         peek().type != TokenType::IDENTIFIER &&
         peek().type != TokenType::RBRACE
     ) {
@@ -83,7 +84,7 @@ void Parser::synchronize() {
 
 std::unique_ptr<ASTNode> Parser::parsePrimary() {
     if (match(TokenType::LPAREN)) {
-        auto node = parseComparison();
+        auto node = parseOr();
 
         consume(
             TokenType::RPAREN,
@@ -195,7 +196,111 @@ std::unique_ptr<ASTNode> Parser::parseComparison() {
     return node;
 }
 
+std::unique_ptr<ASTNode> Parser::parseNot() {
+    if (match(TokenType::NOT)) {
+        auto node = parseNot();
+
+        if (!node) {
+            return nullptr;
+        }
+
+        return std::make_unique<UnaryASTNode>(
+            "not",
+            std::move(node)
+        );
+    }
+
+    return parseComparison();
+}
+
+std::unique_ptr<ASTNode> Parser::parseAnd() {
+    auto node = parseNot();
+
+    while (match(TokenType::AND)) {
+        auto right = parseNot();
+
+        if (!node || !right) {
+            node = nullptr;
+            continue;
+        }
+
+        node = std::make_unique<BinaryASTNode>(
+            "and",
+            std::move(node),
+            std::move(right)
+        );
+    }
+
+    return node;
+}
+
+std::unique_ptr<ASTNode> Parser::parseOr() {
+    auto node = parseAnd();
+
+    while (match(TokenType::OR)) {
+        auto right = parseAnd();
+
+        if (!node || !right) {
+            node = nullptr;
+            continue;
+        }
+
+        node = std::make_unique<BinaryASTNode>(
+            "or",
+            std::move(node),
+            std::move(right)
+        );
+    }
+
+    return node;
+}
+
+std::unique_ptr<ASTNode> Parser::parseWhile() {
+    consume(TokenType::WHILE, "Expected 'while'");
+
+    consume(TokenType::LPAREN, "Expected '(' after while");
+
+    auto condition = parseOr();
+
+    consume(TokenType::RPAREN, "Expected ')' after condition");
+
+    consume(TokenType::LBRACE, "Expected '{' before while body");
+
+    std::vector<std::unique_ptr<ASTNode>> statements;
+
+    while (
+        peek().type != TokenType::RBRACE &&
+        peek().type != TokenType::END_OF_FILE
+    ) {
+        std::size_t previousCursor = cursor;
+        auto statement = parseStatement();
+
+        if (statement) {
+            statements.push_back(std::move(statement));
+        }
+
+        if (cursor == previousCursor) {
+            advance();
+        }
+    }
+
+    consume(TokenType::RBRACE, "Expected '}' after while body");
+
+    if (condition) {
+        return std::make_unique<WhileASTNode>(
+            std::move(condition),
+            std::move(statements)
+        );
+    }
+
+    return nullptr;
+}
+
 std::unique_ptr<ASTNode> Parser::parseStatement() {
+    if (peek().type == TokenType::WHILE) {
+        return parseWhile();
+    }
+
     if (
         match(TokenType::IF) ||
         match(TokenType::ELSE_IF)
@@ -205,7 +310,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
             "Expected '(' after if"
         );
 
-        auto condition = parseComparison();
+        auto condition = parseOr();
 
         consume(
             TokenType::RPAREN,
@@ -295,7 +400,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
         std::unique_ptr<ASTNode> expr;
 
         if (match(TokenType::LPAREN)) {
-            expr = parseComparison();
+            expr = parseOr();
 
             consume(
                 TokenType::RPAREN,

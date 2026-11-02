@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstdlib>
 
+#include "SP.h"
 #include "Lexer.h"
 #include "Parser.h"
 #include "CodeGen.h"
@@ -12,6 +13,13 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: ./stobx <filename.stobx>\n";
         return 1;
     }
+SP processor;
+
+if (!processor.process(argv[1])) {
+    return 1;
+}
+
+return 0;
 
     std::ifstream file(argv[1]);
 
@@ -69,3 +77,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+

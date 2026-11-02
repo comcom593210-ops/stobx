@@ -80,6 +80,25 @@ llvm::Value* CodeGen::generateExpression(ASTNode* node) {
         );
     }
 
+    if (auto* unaryNode = dynamic_cast<UnaryASTNode*>(node)) {
+        llvm::Value* operand =
+            generateExpression(unaryNode->operand.get());
+
+        if (unaryNode->op == "not") {
+            if (!operand->getType()->isIntegerTy(1)) {
+                throw std::runtime_error(
+                    "'not' requires a comparison or logical expression"
+                );
+            }
+
+            return builder->CreateNot(operand, "nottmp");
+        }
+
+        throw std::runtime_error(
+            "Unknown unary operator: " + unaryNode->op
+        );
+    }
+
     if (auto* binNode = dynamic_cast<BinaryASTNode*>(node)) {
         llvm::Value* leftVal =
             generateExpression(binNode->left.get());
@@ -144,6 +163,32 @@ llvm::Value* CodeGen::generateExpression(ASTNode* node) {
         if (binNode->op == "!=") {
             return builder->CreateICmpNE(
                 leftVal, rightVal, "cmptmp"
+            );
+        }
+
+        if (binNode->op == "and") {
+            if (!leftVal->getType()->isIntegerTy(1) ||
+                !rightVal->getType()->isIntegerTy(1)) {
+                throw std::runtime_error(
+                    "'and' requires comparison or logical expressions"
+                );
+            }
+
+            return builder->CreateAnd(
+                leftVal, rightVal, "andtmp"
+            );
+        }
+
+        if (binNode->op == "or") {
+            if (!leftVal->getType()->isIntegerTy(1) ||
+                !rightVal->getType()->isIntegerTy(1)) {
+                throw std::runtime_error(
+                    "'or' requires comparison or logical expressions"
+                );
+            }
+
+            return builder->CreateOr(
+                leftVal, rightVal, "ortmp"
             );
         }
 
@@ -283,13 +328,73 @@ void CodeGen::generate(ProgramASTNode* program) {
             return;
         }
 
+        if (auto* whileNode =
+                dynamic_cast<WhileASTNode*>(node)) {
+
+            llvm::Function* function =
+                builder->GetInsertBlock()->getParent();
+
+            llvm::BasicBlock* conditionBlock =
+                llvm::BasicBlock::Create(
+                    *context,
+                    "while.condition",
+                    function
+                );
+
+            llvm::BasicBlock* bodyBlock =
+                llvm::BasicBlock::Create(
+                    *context,
+                    "while.body",
+                    function
+                );
+
+            llvm::BasicBlock* endBlock =
+                llvm::BasicBlock::Create(
+                    *context,
+                    "while.end",
+                    function
+                );
+
+            builder->CreateBr(conditionBlock);
+
+            builder->SetInsertPoint(conditionBlock);
+
+            llvm::Value* condition =
+                generateExpression(whileNode->condition.get());
+
+            if (!condition->getType()->isIntegerTy(1)) {
+                throw std::runtime_error(
+                    "The while condition must be a comparison or logical expression"
+                );
+            }
+
+            builder->CreateCondBr(
+                condition,
+                bodyBlock,
+                endBlock
+            );
+
+            builder->SetInsertPoint(bodyBlock);
+
+            for (const auto& statement : whileNode->statements) {
+                generateStatement(statement.get());
+            }
+
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                builder->CreateBr(conditionBlock);
+            }
+
+            builder->SetInsertPoint(endBlock);
+            return;
+        }
+
         if (auto* ifNode = dynamic_cast<IfASTNode*>(node)) {
             llvm::Value* condition =
                 generateExpression(ifNode->condition.get());
 
             if (!condition->getType()->isIntegerTy(1)) {
                 throw std::runtime_error(
-                    "The if condition must be a comparison"
+                    "The if condition must be a comparison or logical expression"
                 );
             }
 
