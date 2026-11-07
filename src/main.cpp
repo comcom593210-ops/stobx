@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -7,19 +8,24 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "CodeGen.h"
+#include "DiagnosticUI.h"
+#include "CorrectionEngine.h"
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Usage: ./stobx <filename.stobx>\n";
         return 1;
     }
-SP processor;
 
-if (!processor.process(argv[1])) {
-    return 1;
-}
+    SP processor;
 
-return 0;
+    if (!processor.process(argv[1])) {
+        if (!processor.process(argv[1])) {
+            return 1;
+        }
+
+        return 0;
+    }
 
     std::ifstream file(argv[1]);
 
@@ -39,6 +45,63 @@ return 0;
 
         Parser parser(tokens);
         auto ast = parser.parse();
+
+        if (!parser.getDiagnostics().empty()) {
+            DiagnosticUI ui;
+            CorrectionEngine correctionEngine;
+
+            std::string currentSourceCode = sourceCode;
+            std::size_t offsetAdjustment = 0;
+
+            for (const auto& diagnostic : parser.getDiagnostics()) {
+                ui.showDiagnostic(diagnostic);
+
+                std::string correction =
+                    correctionEngine.suggestCorrection(diagnostic.id);
+
+                ui.showCorrection(correction);
+
+                Diagnostic adjustedDiagnostic = diagnostic;
+                adjustedDiagnostic.offset += offsetAdjustment;
+
+                std::string preview =
+                    correctionEngine.createPreview(
+                        currentSourceCode,
+                        adjustedDiagnostic
+                    );
+
+                if (preview.empty()) {
+                    std::cout << "Could not create correction preview.\n";
+                    continue;
+                }
+
+                if (ui.askForCorrection()) {
+                    std::ofstream outputFile(
+                        argv[1],
+                        std::ios::out | std::ios::trunc
+                    );
+
+                    if (!outputFile.is_open()) {
+                        std::cerr << "Error: Could not save corrected file.\n";
+                        return 1;
+                    }
+
+                    outputFile << preview;
+                    outputFile.close();
+
+                    offsetAdjustment +=
+                        preview.size() - currentSourceCode.size();
+
+                    currentSourceCode = preview;
+
+                    std::cout << "\nCorrection saved successfully.\n";
+                } else {
+                    std::cout << "\nCorrection cancelled.\n";
+                }
+            }
+
+            return 1;
+        }
 
         if (!parser.getErrors().empty()) {
             for (const auto& error : parser.getErrors()) {

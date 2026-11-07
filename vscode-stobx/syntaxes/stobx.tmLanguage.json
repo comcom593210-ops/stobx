@@ -1,0 +1,38 @@
+{
+  "scopeName": "source.stobx",
+  "patterns": [
+    {
+      "name": "keyword.control.stobx",
+      "match": "\\b(if|else|else\\s+if|else_if|while|for)\\b"
+    },
+    {
+      "name": "keyword.operator.logical.stobx",
+      "match": "\\b(not|and|or)\\b"
+    },
+    {
+      "name": "support.function.stobx",
+      "match": "\\b(pri|delete|copy|move)\\b"
+    },
+    {
+      "name": "constant.numeric.stobx",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    },
+    {
+      "name": "string.quoted.double.stobx",
+      "begin": "\"",
+      "end": "\""
+    },
+    {
+      "name": "keyword.operator.stobx",
+      "match": "==|!=|>=|<=|>|<|=|#|\\+|-|\\*|/"
+    },
+    {
+      "name": "punctuation.terminator.stobx",
+      "match": "\\.\\."
+    },
+    {
+      "name": "variable.other.stobx",
+      "match": "\\b[a-zA-Z][a-zA-Z0-9]*\\b"
+    }
+  ]
+}

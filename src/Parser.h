@@ -1,7 +1,10 @@
+
 #ifndef PARSER_H
 #define PARSER_H
 
 #include "Lexer.h"
+#include "Diagnostic.h"
+
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -36,6 +39,7 @@ public:
     explicit VariableASTNode(std::string name)
         : name(std::move(name)) {}
 };
+
 class UnaryASTNode : public ASTNode {
 public:
     std::string op;
@@ -92,6 +96,7 @@ class ProgramASTNode : public ASTNode {
 public:
     std::vector<std::unique_ptr<ASTNode>> statements;
 };
+
 class IfASTNode : public ASTNode {
 public:
     std::unique_ptr<ASTNode> condition;
@@ -107,6 +112,7 @@ public:
           statements(std::move(statements)),
           elseStatements(std::move(elseStatements)) {}
 };
+
 class WhileASTNode : public ASTNode {
 public:
     std::unique_ptr<ASTNode> condition;
@@ -119,6 +125,7 @@ public:
         : condition(std::move(condition)),
           statements(std::move(statements)) {}
 };
+
 class Parser {
 public:
     explicit Parser(std::vector<Token> tokens);
@@ -126,11 +133,14 @@ public:
     std::unique_ptr<ProgramASTNode> parse();
 
     const std::vector<std::string>& getErrors() const;
+    const std::vector<Diagnostic>& getDiagnostics() const;
 
 private:
     std::vector<Token> tokens;
     std::size_t cursor = 0;
+
     std::vector<std::string> errors;
+    std::vector<Diagnostic> diagnostics;
 
     Token peek() const;
     Token advance();
@@ -141,20 +151,30 @@ private:
         const std::string& errorMessage
     );
 
+    void consumeClosingParenthesis();
+    void consumeOpeningParenthesis();
+
     void addError(
         int line,
         const std::string& message
+    );
+
+    void addDiagnostic(
+        int id,
+        int line,
+        int column,
+        std::size_t offset
     );
 
     void synchronize();
 
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseComparison();
-std::unique_ptr<ASTNode> parseOr();
-std::unique_ptr<ASTNode> parseAnd();
-std::unique_ptr<ASTNode> parseNot();
+    std::unique_ptr<ASTNode> parseOr();
+    std::unique_ptr<ASTNode> parseAnd();
+    std::unique_ptr<ASTNode> parseNot();
 
-std::unique_ptr<ASTNode> parseWhile();
+    std::unique_ptr<ASTNode> parseWhile();
 
     std::unique_ptr<ASTNode> parsePrimary();
     std::unique_ptr<ASTNode> parseTerm();
@@ -163,3 +183,4 @@ std::unique_ptr<ASTNode> parseWhile();
 };
 
 #endif
+

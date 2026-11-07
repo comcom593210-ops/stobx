@@ -1,3 +1,4 @@
+
 #include "Lexer.h"
 #include <cctype>
 #include <utility>
@@ -16,16 +17,21 @@ char Lexer::advance() {
     if (cursor >= source.length())
         return '\0';
 
-    return source[cursor++];
+    char c = source[cursor++];
+
+    if (c == '\n') {
+        currentLine++;
+        currentColumn = 1;
+    } else {
+        currentColumn++;
+    }
+
+    return c;
 }
 
 void Lexer::skipWhitespace() {
     while (std::isspace(
         static_cast<unsigned char>(peek()))) {
-
-        if (peek() == '\n')
-            currentLine++;
-
         advance();
     }
 }
@@ -42,6 +48,8 @@ std::vector<Token> Lexer::tokenize() {
             break;
 
         int tokenLine = currentLine;
+        int tokenColumn = currentColumn;
+        std::size_t tokenOffset = cursor;
 
         if (current == '.' &&
             cursor + 1 < source.length() &&
@@ -51,7 +59,8 @@ std::vector<Token> Lexer::tokenize() {
             advance();
 
             tokens.push_back({
-                TokenType::DOTDOT, "..", tokenLine
+                TokenType::DOTDOT, "..",
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -69,7 +78,8 @@ std::vector<Token> Lexer::tokenize() {
                 advance();
 
             tokens.push_back({
-                TokenType::STRING, strVal, tokenLine
+                TokenType::STRING, strVal,
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -86,7 +96,8 @@ std::vector<Token> Lexer::tokenize() {
             }
 
             tokens.push_back({
-                TokenType::NUMBER, numVal, tokenLine
+                TokenType::NUMBER, numVal,
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -104,40 +115,47 @@ std::vector<Token> Lexer::tokenize() {
 
             if (ident == "pri") {
                 tokens.push_back({
-                    TokenType::PRI, ident, tokenLine
-                });
-            } else if (ident == "if") {
-                tokens.push_back({
-                    TokenType::IF, ident, tokenLine
-                });
-                } else if (ident == "and") {
-                tokens.push_back({
-                    TokenType::AND, ident, tokenLine
-                });
-} else if (ident == "or") {
-                tokens.push_back({
-                    TokenType::OR, ident, tokenLine
-                });
-} else if (ident == "not") {
-                tokens.push_back({
-                    TokenType::NOT, ident, tokenLine
+                    TokenType::PRI, ident,
+                    tokenLine, tokenColumn, tokenOffset
                 });
 
-} else if (ident == "while") {
+            } else if (ident == "if") {
                 tokens.push_back({
-                    TokenType::WHILE, ident, tokenLine
+                    TokenType::IF, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });
+
+            } else if (ident == "and") {
+                tokens.push_back({
+                    TokenType::AND, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });
+
+            } else if (ident == "or") {
+                tokens.push_back({
+                    TokenType::OR, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });
+
+            } else if (ident == "not") {
+                tokens.push_back({
+                    TokenType::NOT, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });
+
+            } else if (ident == "while") {
+                tokens.push_back({
+                    TokenType::WHILE, ident,
+                    tokenLine, tokenColumn, tokenOffset
                 });
 
             } else if (ident == "else") {
                 std::size_t savedCursor = cursor;
                 int savedLine = currentLine;
+                int savedColumn = currentColumn;
 
                 while (std::isspace(
                     static_cast<unsigned char>(peek()))) {
-
-                    if (peek() == '\n')
-                        currentLine++;
-
                     advance();
                 }
 
@@ -159,25 +177,31 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back({
                         TokenType::ELSE_IF,
                         "else if",
-                        tokenLine
+                        tokenLine, tokenColumn, tokenOffset
                     });
+
                 } else {
                     cursor = savedCursor;
                     currentLine = savedLine;
+                    currentColumn = savedColumn;
 
                     tokens.push_back({
-                        TokenType::ELSE, ident, tokenLine
+                        TokenType::ELSE, ident,
+                        tokenLine, tokenColumn, tokenOffset
                     });
                 }
+
             } else {
                 tokens.push_back({
-                    TokenType::IDENTIFIER, ident, tokenLine
+                    TokenType::IDENTIFIER, ident,
+                    tokenLine, tokenColumn, tokenOffset
                 });
             }
 
             continue;
         }
-         if (current == '=' &&
+
+        if (current == '=' &&
             cursor + 1 < source.length() &&
             source[cursor + 1] == '=') {
 
@@ -185,7 +209,8 @@ std::vector<Token> Lexer::tokenize() {
             advance();
 
             tokens.push_back({
-                TokenType::EQUAL_EQUAL, "==", tokenLine
+                TokenType::EQUAL_EQUAL, "==",
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -199,7 +224,8 @@ std::vector<Token> Lexer::tokenize() {
             advance();
 
             tokens.push_back({
-                TokenType::NOT_EQUAL, "!=", tokenLine
+                TokenType::NOT_EQUAL, "!=",
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -213,7 +239,8 @@ std::vector<Token> Lexer::tokenize() {
             advance();
 
             tokens.push_back({
-                TokenType::GREATER_EQUAL, ">=", tokenLine
+                TokenType::GREATER_EQUAL, ">=",
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -227,7 +254,8 @@ std::vector<Token> Lexer::tokenize() {
             advance();
 
             tokens.push_back({
-                TokenType::LESS_EQUAL, "<=", tokenLine
+                TokenType::LESS_EQUAL, "<=",
+                tokenLine, tokenColumn, tokenOffset
             });
 
             continue;
@@ -238,67 +266,78 @@ std::vector<Token> Lexer::tokenize() {
         switch (c) {
             case '=':
                 tokens.push_back({
-                    TokenType::EQUAL, "=", tokenLine
+                    TokenType::EQUAL, "=",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '>':
                 tokens.push_back({
-                    TokenType::GREATER, ">", tokenLine
+                    TokenType::GREATER, ">",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '<':
                 tokens.push_back({
-                    TokenType::LESS, "<", tokenLine
+                    TokenType::LESS, "<",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '(':
                 tokens.push_back({
-                    TokenType::LPAREN, "(", tokenLine
+                    TokenType::LPAREN, "(",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case ')':
                 tokens.push_back({
-                    TokenType::RPAREN, ")", tokenLine
+                    TokenType::RPAREN, ")",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '{':
                 tokens.push_back({
-                    TokenType::LBRACE, "{", tokenLine
+                    TokenType::LBRACE, "{",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '}':
                 tokens.push_back({
-                    TokenType::RBRACE, "}", tokenLine
+                    TokenType::RBRACE, "}",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '+':
                 tokens.push_back({
-                    TokenType::PLUS, "+", tokenLine
+                    TokenType::PLUS, "+",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '-':
                 tokens.push_back({
-                    TokenType::MINUS, "-", tokenLine
+                    TokenType::MINUS, "-",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '*':
                 tokens.push_back({
-                    TokenType::MULTIPLY, "*", tokenLine
+                    TokenType::MULTIPLY, "*",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
             case '/':
                 tokens.push_back({
-                    TokenType::DIVIDE, "/", tokenLine
+                    TokenType::DIVIDE, "/",
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
 
@@ -306,7 +345,7 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back({
                     TokenType::UNKNOWN,
                     std::string(1, c),
-                    tokenLine
+                    tokenLine, tokenColumn, tokenOffset
                 });
                 break;
         }
@@ -315,7 +354,9 @@ std::vector<Token> Lexer::tokenize() {
     tokens.push_back({
         TokenType::END_OF_FILE,
         "",
-        currentLine
+        currentLine,
+        currentColumn,
+        cursor
     });
 
     return tokens;

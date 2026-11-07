@@ -1,8 +1,10 @@
+
 #ifndef LEXER_H
 #define LEXER_H
 
 #include <string>
 #include <vector>
+#include <cstddef>
 
 enum class TokenType {
     PRI,
@@ -40,6 +42,8 @@ struct Token {
     TokenType type;
     std::string value;
     int line;
+    int column;
+    std::size_t offset;
 };
 
 class Lexer {
@@ -51,6 +55,7 @@ private:
     std::string source;
     size_t cursor = 0;
     int currentLine = 1;
+    int currentColumn = 1;
 
     char peek() const;
     char advance();
@@ -58,3 +63,4 @@ private:
 };
 
 #endif
+

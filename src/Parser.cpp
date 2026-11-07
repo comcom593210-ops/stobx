@@ -1,4 +1,7 @@
+
 #include "Parser.h"
+#include "DiagnosticEngine.h"
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,7 +14,10 @@ Token Parser::peek() const {
         return {
             TokenType::END_OF_FILE,
             "",
-            tokens.empty() ? 1 : tokens.back().line
+            tokens.empty() ? 1 : tokens.back().line,
+            tokens.empty() ? 1 : tokens.back().column,
+            tokens.empty() ? 0 :
+                tokens.back().offset + tokens.back().value.size()
         };
     }
 
@@ -23,7 +29,10 @@ Token Parser::advance() {
         return {
             TokenType::END_OF_FILE,
             "",
-            tokens.empty() ? 1 : tokens.back().line
+            tokens.empty() ? 1 : tokens.back().line,
+            tokens.empty() ? 1 : tokens.back().column,
+            tokens.empty() ? 0 :
+                tokens.back().offset + tokens.back().value.size()
         };
     }
 
@@ -51,6 +60,19 @@ void Parser::addError(
     );
 }
 
+void Parser::addDiagnostic(
+    int id,
+    int line,
+    int column,
+    std::size_t offset
+) {
+    DiagnosticEngine engine;
+
+    diagnostics.push_back(
+        engine.analyze(id, line, column, offset)
+    );
+}
+
 Token Parser::consume(
     TokenType type,
     const std::string& errorMessage
@@ -64,8 +86,36 @@ Token Parser::consume(
     return {
         type,
         "",
-        peek().line
+        peek().line,
+        peek().column,
+        peek().offset
     };
+}
+
+void Parser::consumeClosingParenthesis() {
+    if (peek().type == TokenType::RPAREN) {
+        advance();
+    } else {
+        addDiagnostic(
+            1,
+            peek().line,
+            peek().column,
+            peek().offset
+        );
+    }
+}
+
+void Parser::consumeOpeningParenthesis() {
+    if (peek().type == TokenType::LPAREN) {
+        advance();
+    } else {
+        addDiagnostic(
+            4,
+            peek().line,
+            peek().column,
+            peek().offset
+        );
+    }
 }
 
 void Parser::synchronize() {
@@ -86,10 +136,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
     if (match(TokenType::LPAREN)) {
         auto node = parseOr();
 
-        consume(
-            TokenType::RPAREN,
-            "Expected ')' after expression"
-        );
+        consumeClosingParenthesis();
 
         return node;
     }
@@ -258,11 +305,11 @@ std::unique_ptr<ASTNode> Parser::parseOr() {
 std::unique_ptr<ASTNode> Parser::parseWhile() {
     consume(TokenType::WHILE, "Expected 'while'");
 
-    consume(TokenType::LPAREN, "Expected '(' after while");
+    consumeOpeningParenthesis();
 
     auto condition = parseOr();
 
-    consume(TokenType::RPAREN, "Expected ')' after condition");
+    consumeClosingParenthesis();
 
     consume(TokenType::LBRACE, "Expected '{' before while body");
 
@@ -305,17 +352,11 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
         match(TokenType::IF) ||
         match(TokenType::ELSE_IF)
     ) {
-        consume(
-            TokenType::LPAREN,
-            "Expected '(' after if"
-        );
+        consumeOpeningParenthesis();
 
         auto condition = parseOr();
 
-        consume(
-            TokenType::RPAREN,
-            "Expected ')' after condition"
-        );
+        consumeClosingParenthesis();
 
         consume(
             TokenType::LBRACE,
@@ -402,12 +443,20 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
         if (match(TokenType::LPAREN)) {
             expr = parseOr();
 
-            consume(
-                TokenType::RPAREN,
-                "Expected ')' after expression"
-            );
+            consumeClosingParenthesis();
         } else {
+            std::size_t openingOffset = peek().offset;
+
             expr = parseComparison();
+
+            if (peek().type == TokenType::RPAREN) {
+                addDiagnostic(
+                    4,
+                    peek().line,
+                    peek().column,
+                    openingOffset
+                );
+            }
         }
 
         consume(
@@ -494,3 +543,8 @@ std::unique_ptr<ProgramASTNode> Parser::parse() {
 const std::vector<std::string>& Parser::getErrors() const {
     return errors;
 }
+
+const std::vector<Diagnostic>& Parser::getDiagnostics() const {
+    return diagnostics;
+}
+
