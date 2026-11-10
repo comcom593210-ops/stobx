@@ -19,10 +19,18 @@ private:
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
-    std::unordered_map<std::string, llvm::AllocaInst*> variables;
+    struct VariableInfo {
+    llvm::AllocaInst* allocation;
+    std::string typeName;
+};
+
+std::unordered_map<std::string, VariableInfo> variables;
+
 
     llvm::Value* generateExpression(ASTNode* node);
     llvm::Function* getPrintfFunction();
+llvm::Type* getTypeFromName(const std::string& typeName);
+
 };
 
 #endif

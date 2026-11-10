@@ -9,23 +9,13 @@ source_filename = "StobxModule"
 define i32 @main() {
 entry:
   %a = alloca i32, align 4
-  store i32 1, ptr %a, align 4
-  br label %while.condition
-
-while.condition:                                  ; preds = %while.body, %entry
+  store i32 640, ptr %a, align 4
+  %b = alloca i32, align 4
+  store i32 6, ptr %b, align 4
   %a1 = load i32, ptr %a, align 4
-  %cmptmp = icmp slt i32 %a1, 5
-  br i1 %cmptmp, label %while.body, label %while.end
-
-while.body:                                       ; preds = %while.condition
-  %a2 = load i32, ptr %a, align 4
-  %0 = call i32 (ptr, ...) @printf(ptr @intFormat, i32 %a2)
-  %a3 = load i32, ptr %a, align 4
-  %addtmp = add i32 %a3, 1
-  store i32 %addtmp, ptr %a, align 4
-  br label %while.condition
-
-while.end:                                        ; preds = %while.condition
+  %b2 = load i32, ptr %b, align 4
+  %lshrtmp = lshr i32 %a1, %b2
+  %0 = call i32 (ptr, ...) @printf(ptr @intFormat, i32 %lshrtmp)
   ret i32 0
 }
 

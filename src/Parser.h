@@ -126,6 +126,88 @@ public:
           statements(std::move(statements)) {}
 };
 
+class ParameterASTNode : public ASTNode {
+public:
+    std::string name;
+    std::string type;
+
+    ParameterASTNode(std::string name, std::string type)
+        : name(std::move(name)),
+          type(std::move(type)) {}
+};
+
+class FunctionASTNode : public ASTNode {
+public:
+    std::string name;
+    std::string returnType;
+
+    std::vector<std::unique_ptr<ParameterASTNode>> parameters;
+    std::vector<std::unique_ptr<ASTNode>> statements;
+
+    FunctionASTNode(
+        std::string name,
+        std::string returnType,
+        std::vector<std::unique_ptr<ParameterASTNode>> parameters,
+        std::vector<std::unique_ptr<ASTNode>> statements
+    )
+        : name(std::move(name)),
+          returnType(std::move(returnType)),
+          parameters(std::move(parameters)),
+          statements(std::move(statements)) {}
+};
+
+class VariableDeclarationASTNode : public ASTNode {
+public:
+    std::string name;
+    std::string type;
+    std::unique_ptr<ASTNode> value;
+
+    VariableDeclarationASTNode(
+        std::string name,
+        std::string type,
+        std::unique_ptr<ASTNode> value
+    )
+        : name(std::move(name)),
+          type(std::move(type)),
+          value(std::move(value)) {}
+};
+class ReturnASTNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> value;
+
+    explicit ReturnASTNode(std::unique_ptr<ASTNode> value)
+        : value(std::move(value)) {}
+};
+
+class AssertASTNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> condition;
+
+    explicit AssertASTNode(std::unique_ptr<ASTNode> condition)
+        : condition(std::move(condition)) {}
+};
+
+class AssumeASTNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> condition;
+
+    explicit AssumeASTNode(std::unique_ptr<ASTNode> condition)
+        : condition(std::move(condition)) {}
+};
+
+class ContractASTNode : public ASTNode {
+public:
+    std::string contractType;
+    std::unique_ptr<ASTNode> condition;
+
+    ContractASTNode(
+        std::string contractType,
+        std::unique_ptr<ASTNode> condition
+    )
+        : contractType(std::move(contractType)),
+          condition(std::move(condition)) {}
+};
+
 class Parser {
 public:
     explicit Parser(std::vector<Token> tokens);
@@ -167,12 +249,17 @@ private:
     );
 
     void synchronize();
-
     std::unique_ptr<ASTNode> parseExpression();
-    std::unique_ptr<ASTNode> parseComparison();
     std::unique_ptr<ASTNode> parseOr();
     std::unique_ptr<ASTNode> parseAnd();
     std::unique_ptr<ASTNode> parseNot();
+
+    std::unique_ptr<ASTNode> parseShift();
+    std::unique_ptr<ASTNode> parseRelational();
+    std::unique_ptr<ASTNode> parseEquality();
+    std::unique_ptr<ASTNode> parseBitwiseAnd();
+    std::unique_ptr<ASTNode> parseBitwiseXor();
+    std::unique_ptr<ASTNode> parseBitwiseOr();
 
     std::unique_ptr<ASTNode> parseWhile();
 
@@ -180,7 +267,13 @@ private:
     std::unique_ptr<ASTNode> parseTerm();
 
     std::unique_ptr<ASTNode> parseStatement();
+    std::unique_ptr<ASTNode> parseFunction();
+    std::unique_ptr<ASTNode> parseVariableDeclaration();
+    std::unique_ptr<ASTNode> parseReturn();
+    std::unique_ptr<ASTNode> parseAssert();
+    std::unique_ptr<ASTNode> parseAssume();
+    std::unique_ptr<ASTNode> parseContract();
+
 };
 
 #endif
-
