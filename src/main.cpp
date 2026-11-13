@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <cstdio>
 
 #include "SP.h"
 #include "Lexer.h"
@@ -16,6 +17,17 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: ./stobx <filename.stobx>\n";
         return 1;
     }
+
+const char* skipFile = ".stobx_skip_correction";
+bool skipCorrectionPrompt = false;
+
+std::ifstream skipFlag(skipFile);
+
+if (skipFlag.good()) {
+    skipCorrectionPrompt = true;
+    skipFlag.close();
+    std::remove(skipFile);
+}
 
     SP processor;
 
@@ -46,8 +58,9 @@ int main(int argc, char* argv[]) {
         Parser parser(tokens);
         auto ast = parser.parse();
 
-        if (!parser.getDiagnostics().empty()) {
+        if (!parser.getDiagnostics().empty() && !skipCorrectionPrompt){
             DiagnosticUI ui;
+            
             CorrectionEngine correctionEngine;
 
             std::string currentSourceCode = sourceCode;
@@ -94,16 +107,29 @@ int main(int argc, char* argv[]) {
 
                     currentSourceCode = preview;
 
-                    std::cout << "\nCorrection saved successfully.\n";
-                } else {
-                    std::cout << "\nCorrection cancelled.\n";
-                }
+               } else {
+    std::cout << "\nCorrection cancelled.\n";
+
+    std::ofstream skipFlag(skipFile);
+
+    if (!skipFlag.is_open()) {
+        std::cerr << "Error: Could not save temporary state.\n";
+        return 1;
+    }
+
+    skipFlag.close();
+
+    return 1;
+}
+
             }
 
-            return 1;
+                        return 1;
         }
 
         if (!parser.getErrors().empty()) {
+
+
             for (const auto& error : parser.getErrors()) {
                 std::cerr << error << "\n";
             }

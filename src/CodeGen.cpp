@@ -398,21 +398,30 @@ if (!hasUserMain) {
             mainFunction
         );
 
-    builder->SetInsertPoint(entryBlock);
-    }
-    llvm::Function* printfFunction = getPrintfFunction();
+        builder->SetInsertPoint(entryBlock);
+}
 
-    llvm::Value* intFormat =
-        builder->CreateGlobalStringPtr("%d\n", "intFormat");
+llvm::Function* printfFunction = getPrintfFunction();
 
-    llvm::Value* stringFormat =
-        builder->CreateGlobalStringPtr("%s\n", "stringFormat");
+llvm::Value* intFormat =
+    builder->CreateGlobalStringPtr(
+        "%d\n", "intFormat", 0, module.get()
+    );
 
-    llvm::Value* trueString =
-        builder->CreateGlobalStringPtr("true", "trueString");
+llvm::Value* stringFormat =
+    builder->CreateGlobalStringPtr(
+        "%s\n", "stringFormat", 0, module.get()
+    );
 
-    llvm::Value* falseString =
-        builder->CreateGlobalStringPtr("false", "falseString");
+llvm::Value* trueString =
+    builder->CreateGlobalStringPtr(
+        "true", "trueString", 0, module.get()
+    );
+
+llvm::Value* falseString =
+    builder->CreateGlobalStringPtr(
+        "false", "falseString", 0, module.get()
+    );
 
     std::function<void(ASTNode*)> generateStatement;
 
