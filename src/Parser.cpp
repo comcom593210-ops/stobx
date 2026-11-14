@@ -20,6 +20,7 @@ Token Parser::peek() const {
                 tokens.back().offset + tokens.back().value.size()
         };
     }
+    
 
     return tokens[cursor];
 }
@@ -154,10 +155,38 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
     }
 
     if (match(TokenType::IDENTIFIER)) {
-        return std::make_unique<VariableASTNode>(
-            tokens[cursor - 1].value
+    std::string name = tokens[cursor - 1].value;
+
+    if (match(TokenType::LPAREN)) {
+        std::vector<std::unique_ptr<ASTNode>> arguments;
+
+        if (peek().type != TokenType::RPAREN) {
+            while (true) {
+                auto argument = parseOr();
+
+                if (!argument) {
+                    return nullptr;
+                }
+
+                arguments.push_back(std::move(argument));
+
+                if (!match(TokenType::COMMA)) {
+                    break;
+                }
+            }
+        }
+
+        consumeClosingParenthesis();
+
+        return std::make_unique<FunctionCallASTNode>(
+            name,
+            std::move(arguments)
         );
     }
+
+    return std::make_unique<VariableASTNode>(name);
+}
+
 
     addError(peek().line, "Expected expression");
 
@@ -458,27 +487,33 @@ std::unique_ptr<ASTNode> Parser::parseWhile() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseFunction() {
-    consume(TokenType::FN, "Expected 'fn'");
+    consume(TokenType::DO, "Expected 'do'");
 
     Token nameToken = consume(
         TokenType::IDENTIFIER,
         "Expected function name"
     );
 
-        TokenType::LPAREN,
         consumeOpeningParenthesis();
     
 
     std::vector<std::unique_ptr<ParameterASTNode>> parameters;
 
     if (peek().type != TokenType::RPAREN) {
+       
         while (true) {
-            Token typeToken = advance();
+    Token parameterName = consume(
+        TokenType::IDENTIFIER,
+        "Expected parameter name"
+    );
 
-            Token parameterName = consume(
-                TokenType::IDENTIFIER,
-                "Expected parameter name"
-            );
+    consume(
+        TokenType::COLON,
+        "Expected ':' after parameter name"
+    );
+
+    Token typeToken = advance();
+
 
             parameters.push_back(
                 std::make_unique<ParameterASTNode>(
@@ -493,7 +528,6 @@ std::unique_ptr<ASTNode> Parser::parseFunction() {
         }
     }
 
-        TokenType::RPAREN,
         consumeClosingParenthesis();
 
     consume(
@@ -501,7 +535,31 @@ std::unique_ptr<ASTNode> Parser::parseFunction() {
         "Expected '->' before return type"
     );
 
-    Token returnTypeToken = advance();
+    Token returnTypeToken = peek();
+
+if (
+    returnTypeToken.type != TokenType::U1 &&
+    returnTypeToken.type != TokenType::U8 &&
+    returnTypeToken.type != TokenType::U16 &&
+    returnTypeToken.type != TokenType::U32 &&
+    returnTypeToken.type != TokenType::U64 &&
+    returnTypeToken.type != TokenType::I1 &&
+    returnTypeToken.type != TokenType::I8 &&
+    returnTypeToken.type != TokenType::I16 &&
+    returnTypeToken.type != TokenType::I32 &&
+    returnTypeToken.type != TokenType::I64 &&
+    returnTypeToken.type != TokenType::F32 &&
+    returnTypeToken.type != TokenType::F64 &&
+    returnTypeToken.type != TokenType::BOOL &&
+    returnTypeToken.type != TokenType::CHAR &&
+    returnTypeToken.type != TokenType::STRING
+) {
+    addError(peek().line, "Expected a valid return type");
+    return nullptr;
+}
+
+advance();
+
 
     consume(
         TokenType::LBRACE,
@@ -595,8 +653,8 @@ std::unique_ptr<ASTNode> Parser::parseVariableDeclaration() {
     auto value = parseOr();
 
     consume(
-        TokenType::DOTDOT,
-        "Expected '..' at the end of variable declaration"
+        TokenType::SEMICOLON,
+        "Expected ';' at the end of variable declaration"
     );
 
     if (
@@ -622,8 +680,8 @@ std::unique_ptr<ASTNode> Parser::parseReturn() {
     auto value = parseOr();
 
     consume(
-        TokenType::DOTDOT,
-        "Expected '..' at the end of return statement"
+        TokenType::SEMICOLON,
+        "Expected ';' at the end of return statement"
     );
 
     if (value) {
@@ -648,8 +706,9 @@ std::unique_ptr<ASTNode> Parser::parseAssert() {
     consumeClosingParenthesis();
 
     consume(
-        TokenType::DOTDOT,
-        "Expected '..' at the end of assert statement"
+        TokenType::SEMICOLON,
+
+        "Expected ';' at the end of assert statement"
     );
 
     if (condition) {
@@ -674,8 +733,8 @@ std::unique_ptr<ASTNode> Parser::parseAssume() {
     consumeClosingParenthesis();
 
     consume(
-        TokenType::DOTDOT,
-        "Expected '..' at the end of assume statement"
+        TokenType::SEMICOLON,
+        "Expected ';' at the end of assume statement"
     );
 
     if (condition) {
@@ -710,8 +769,8 @@ std::unique_ptr<ASTNode> Parser::parseContract() {
     consumeClosingParenthesis();
 
     consume(
-        TokenType::DOTDOT,
-        "Expected '..' at the end of contract"
+        TokenType::SEMICOLON,
+        "Expected ';' at the end of contract"
     );
 
     if (condition) {
@@ -729,7 +788,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
         return parseWhile();
     }
 
-if (peek().type == TokenType::FN) {
+if (peek().type == TokenType::DO) {
     return parseFunction();
 }
 
@@ -869,8 +928,8 @@ if (
         }
 
         consume(
-            TokenType::DOTDOT,
-            "Expected '..' at the end of statement"
+        TokenType::SEMICOLON,
+            "Expected ';' at the end of statement"
         );
 
         if (expr) {
@@ -893,8 +952,8 @@ if (
         auto value = parseOr();
 
         consume(
-            TokenType::DOTDOT,
-            "Expected '..' at the end of statement"
+        TokenType::SEMICOLON,
+            "Expected ';' at the end of statement"
         );
 
         if (value) {

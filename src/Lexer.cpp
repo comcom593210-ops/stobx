@@ -51,20 +51,18 @@ std::vector<Token> Lexer::tokenize() {
         int tokenColumn = currentColumn;
         std::size_t tokenOffset = cursor;
 
-        if (current == '.' &&
-            cursor + 1 < source.length() &&
-            source[cursor + 1] == '.') {
+if (current == ';') {
+    advance();
 
-            advance();
-            advance();
+    tokens.push_back({
+        TokenType::SEMICOLON, ";",
+        tokenLine, tokenColumn, tokenOffset
+    });
 
-            tokens.push_back({
-                TokenType::DOTDOT, "..",
-                tokenLine, tokenColumn, tokenOffset
-            });
+    continue;
+}
 
-            continue;
-        }
+            
 
         if (current == '"') {
             advance();
@@ -149,9 +147,9 @@ std::vector<Token> Lexer::tokenize() {
                     tokenLine, tokenColumn, tokenOffset
                 });
 
-                 } else if (ident == "fn") {
+                 } else if (ident == "do") {
                 tokens.push_back({
-                    TokenType::FN, ident,
+                    TokenType::DO, ident,
                     tokenLine, tokenColumn, tokenOffset
                 });
 

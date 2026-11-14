@@ -1,10 +1,9 @@
-fn main() -> u32 {
-    let age: u32 = 15..
-    let result: u32 = age + 10..
+do multiply(a: u32, b: u32) -> u32 {
+    return a * b;
+}
 
-    pri("STOBX Function Test")..
-    pri(age)..
-    pri(result)..
-
-    return 0..
+do main() -> u32 {
+    let resu: u32 = multiply(5, 68);
+    pri resu;
+    return 0;
 }

@@ -40,6 +40,19 @@ public:
         : name(std::move(name)) {}
 };
 
+class FunctionCallASTNode : public ASTNode {
+public:
+    std::string name;
+    std::vector<std::unique_ptr<ASTNode>> arguments;
+
+    FunctionCallASTNode(
+        std::string name,
+        std::vector<std::unique_ptr<ASTNode>> arguments
+    )
+        : name(std::move(name)),
+          arguments(std::move(arguments)) {}
+};
+
 class UnaryASTNode : public ASTNode {
 public:
     std::string op;

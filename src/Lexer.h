@@ -15,7 +15,7 @@ enum class TokenType {
     OR,
     NOT,
     WHILE,
-    FN,
+    DO,
     LET,
     RETURN,
     U1,
@@ -66,7 +66,7 @@ enum class TokenType {
     RBRACE,
     VERIFY_START,
     VERIFY_END,
-    DOTDOT,
+    SEMICOLON,
     END_OF_FILE,
     UNKNOWN
 };

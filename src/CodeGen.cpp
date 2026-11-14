@@ -94,6 +94,49 @@ llvm::Value* CodeGen::generateExpression(ASTNode* node) {
         throw std::runtime_error("Invalid expression");
     }
 
+    if (auto* callNode = dynamic_cast<FunctionCallASTNode*>(node)) {
+    llvm::Function* function =
+        module->getFunction(callNode->name);
+
+    if (!function) {
+        throw std::runtime_error(
+            "Unknown function: " + callNode->name
+        );
+    }
+
+    if (function->arg_size() != callNode->arguments.size()) {
+        throw std::runtime_error(
+            "Incorrect number of arguments in function call: " +
+            callNode->name
+        );
+    }
+
+    std::vector<llvm::Value*> arguments;
+
+    for (std::size_t i = 0; i < callNode->arguments.size(); ++i) {
+        llvm::Value* argument =
+            generateExpression(callNode->arguments[i].get());
+
+        llvm::Type* expectedType =
+            function->getFunctionType()->getParamType(i);
+
+        if (argument->getType() != expectedType) {
+            throw std::runtime_error(
+                "Function argument type mismatch: " +
+                callNode->name
+            );
+        }
+
+        arguments.push_back(argument);
+    }
+
+    return builder->CreateCall(
+        function,
+        arguments,
+        "calltmp"
+    );
+}
+
     if (auto* numNode = dynamic_cast<NumberASTNode*>(node)) {
         return builder->getInt32(
             std::stoi(numNode->value)
@@ -376,6 +419,49 @@ for (const auto& statement : program->statements) {
         }
     }
 }
+
+// Pre-declare all functions before generating their bodies.
+for (const auto& statement : program->statements) {
+    auto* functionNode =
+        dynamic_cast<FunctionASTNode*>(statement.get());
+
+    if (!functionNode) {
+        continue;
+    }
+
+    if (module->getFunction(functionNode->name)) {
+        throw std::runtime_error(
+            "Function already declared: " + functionNode->name
+        );
+    }
+
+    llvm::Type* returnType =
+        getTypeFromName(functionNode->returnType);
+
+    std::vector<llvm::Type*> parameterTypes;
+
+    for (const auto& parameter : functionNode->parameters) {
+        parameterTypes.push_back(
+            getTypeFromName(parameter->type)
+        );
+    }
+
+    llvm::FunctionType* functionType =
+        llvm::FunctionType::get(
+            returnType,
+            parameterTypes,
+            false
+        );
+
+    llvm::Function::Create(
+        functionType,
+        llvm::Function::ExternalLinkage,
+        functionNode->name,
+        module.get()
+    );
+}
+
+
 if (!hasUserMain) {
     llvm::FunctionType* mainType =
         llvm::FunctionType::get(
@@ -491,37 +577,16 @@ if (auto* returnNode = dynamic_cast<ReturnASTNode*>(node)) {
 }
 
 if (auto* functionNode = dynamic_cast<FunctionASTNode*>(node)) {
-    if (module->getFunction(functionNode->name)) {
-        throw std::runtime_error(
-            "Function already declared: " + functionNode->name
-        );
-    }
-
-    llvm::Type* returnType =
-        getTypeFromName(functionNode->returnType);
-
-    std::vector<llvm::Type*> parameterTypes;
-
-    for (const auto& parameter : functionNode->parameters) {
-        parameterTypes.push_back(
-            getTypeFromName(parameter->type)
-        );
-    }
-
-    llvm::FunctionType* functionType =
-        llvm::FunctionType::get(
-            returnType,
-            parameterTypes,
-            false
-        );
-
     llvm::Function* function =
-        llvm::Function::Create(
-            functionType,
-            llvm::Function::ExternalLinkage,
-            functionNode->name,
-            module.get()
-        );
+    module->getFunction(functionNode->name);
+
+if (!function) {
+    throw std::runtime_error(
+        "Function was not pre-declared: " + functionNode->name
+    );
+}
+
+
 
     auto savedInsertPoint = builder->saveIP();
     auto savedVariables = variables;
