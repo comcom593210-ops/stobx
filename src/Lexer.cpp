@@ -287,6 +287,13 @@ if (current == ';') {
                     tokenLine, tokenColumn, tokenOffset
                 });    
 
+
+} else if (ident == "break") {
+                tokens.push_back({
+                    TokenType::BREAK, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });  
+
 } else if (ident == "result") {
                 tokens.push_back({
                     TokenType::RESULT, ident,

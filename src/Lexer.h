@@ -33,6 +33,7 @@ enum class TokenType {
     BOOL,
     CHAR,
     FOR,
+    BREAK,
     STRING,
     REQUIRES,
     ENSURES,

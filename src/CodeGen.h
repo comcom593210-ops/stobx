@@ -7,6 +7,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 class CodeGen {
 public:
@@ -25,6 +26,8 @@ private:
 };
 
 std::unordered_map<std::string, VariableInfo> variables;
+
+std::vector<llvm::BasicBlock*> breakTargets;
 
 
     llvm::Value* generateExpression(ASTNode* node);

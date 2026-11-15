@@ -158,6 +158,11 @@ public:
           statements(std::move(statements)) {}
 };
 
+class BreakASTNode : public ASTNode {
+public:
+    BreakASTNode() = default;
+};
+
 class ParameterASTNode : public ASTNode {
 public:
     std::string name;
@@ -306,6 +311,7 @@ private:
     std::unique_ptr<ASTNode> parseAssume();
     std::unique_ptr<ASTNode> parseContract();
     std::unique_ptr<ASTNode> parseFor();
+    std::unique_ptr<ASTNode> parseBreak();
 
 };
 

@@ -9,7 +9,7 @@ std::string CorrectionEngine::suggestCorrection(int id) {
             return "Insert a closing quotation mark '\"'.";
 
         case 3:
-            return "Insert the statement terminator '..'.";
+            return "Insert the statement terminator ';'.";
             case 4:
             return "Insert an opening parenthesis '('.";
 

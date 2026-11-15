@@ -516,6 +516,21 @@ llvm::Value* falseString =
             return;
         }
 
+
+if (dynamic_cast<BreakASTNode*>(node)) {
+
+    if (breakTargets.empty()) {
+        throw std::runtime_error(
+            "'break' can only be used inside a loop"
+        );
+    }
+
+    builder->CreateBr(breakTargets.back());
+
+    return;
+}
+
+
 if (auto* varNode = dynamic_cast<VariableDeclarationASTNode*>(node)) {
     llvm::Type* varType = getTypeFromName(varNode->type);
 
@@ -832,11 +847,11 @@ if (auto* forNode =
             "for.end",
             function
         );
-
-    // Jump to condition
+breakTargets.push_back(endBlock);
+    
     builder->CreateBr(conditionBlock);
 
-    // Condition
+    
     builder->SetInsertPoint(conditionBlock);
 
     llvm::Value* condition =
@@ -854,7 +869,7 @@ if (auto* forNode =
         endBlock
     );
 
-    // Body
+    
     builder->SetInsertPoint(bodyBlock);
 
     for (const auto& statement : forNode->statements) {
@@ -865,7 +880,7 @@ if (auto* forNode =
         builder->CreateBr(updateBlock);
     }
 
-    // Update
+    
     builder->SetInsertPoint(updateBlock);
 
     generateStatement(forNode->update.get());
@@ -874,71 +889,86 @@ if (auto* forNode =
         builder->CreateBr(conditionBlock);
     }
 
-    // End
+    
     builder->SetInsertPoint(endBlock);
 
     return;
 }
 
-        if (auto* whileNode =
-                dynamic_cast<WhileASTNode*>(node)) {
 
-            llvm::Function* function =
-                builder->GetInsertBlock()->getParent();
+if (auto* whileNode =
+        dynamic_cast<WhileASTNode*>(node)) {
 
-            llvm::BasicBlock* conditionBlock =
-                llvm::BasicBlock::Create(
-                    *context,
-                    "while.condition",
-                    function
-                );
+    llvm::Function* function =
+        builder->GetInsertBlock()->getParent();
 
-            llvm::BasicBlock* bodyBlock =
-                llvm::BasicBlock::Create(
-                    *context,
-                    "while.body",
-                    function
-                );
+    llvm::BasicBlock* conditionBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "while.condition",
+            function
+        );
 
-            llvm::BasicBlock* endBlock =
-                llvm::BasicBlock::Create(
-                    *context,
-                    "while.end",
-                    function
-                );
+    llvm::BasicBlock* bodyBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "while.body",
+            function
+        );
 
-            builder->CreateBr(conditionBlock);
+    llvm::BasicBlock* endBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "while.end",
+            function
+        );
 
-            builder->SetInsertPoint(conditionBlock);
+    // Register break destination
+    breakTargets.push_back(endBlock);
 
-            llvm::Value* condition =
-                generateExpression(whileNode->condition.get());
+    builder->CreateBr(conditionBlock);
 
-            if (!condition->getType()->isIntegerTy(1)) {
-                throw std::runtime_error(
-                    "The while condition must be a comparison or logical expression"
-                );
-            }
+    // Condition
+    builder->SetInsertPoint(conditionBlock);
 
-            builder->CreateCondBr(
-                condition,
-                bodyBlock,
-                endBlock
-            );
+    llvm::Value* condition =
+        generateExpression(whileNode->condition.get());
 
-            builder->SetInsertPoint(bodyBlock);
+    if (!condition->getType()->isIntegerTy(1)) {
+        throw std::runtime_error(
+            "The while condition must be a comparison or logical expression"
+        );
+    }
 
-            for (const auto& statement : whileNode->statements) {
-                generateStatement(statement.get());
-            }
+    builder->CreateCondBr(
+        condition,
+        bodyBlock,
+        endBlock
+    );
 
-            if (!builder->GetInsertBlock()->getTerminator()) {
-                builder->CreateBr(conditionBlock);
-            }
+    // Body
+    builder->SetInsertPoint(bodyBlock);
 
-            builder->SetInsertPoint(endBlock);
-            return;
+    for (const auto& statement : whileNode->statements) {
+        generateStatement(statement.get());
+
+        if (builder->GetInsertBlock()->getTerminator()) {
+            break;
         }
+    }
+
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(conditionBlock);
+    }
+
+    // End
+    builder->SetInsertPoint(endBlock);
+
+    breakTargets.pop_back();
+
+    return;
+}
+
 
         if (auto* ifNode = dynamic_cast<IfASTNode*>(node)) {
             llvm::Value* condition =

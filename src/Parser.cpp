@@ -575,6 +575,19 @@ std::unique_ptr<ASTNode> Parser::parseFor() {
     return nullptr;
 }
 
+std::unique_ptr<ASTNode> Parser::parseBreak() {
+    consume(
+        TokenType::BREAK,
+        "Expected 'break'"
+    );
+
+    consume(
+        TokenType::SEMICOLON,
+        "Expected ';' after break"
+    );
+
+    return std::make_unique<BreakASTNode>();
+}
 
 std::unique_ptr<ASTNode> Parser::parseFunction() {
     consume(TokenType::DO, "Expected 'do'");
@@ -880,6 +893,10 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
 if (peek().type == TokenType::FOR) {
     return parseFor();
+}
+
+if (peek().type == TokenType::BREAK) {
+    return parseBreak();
 }
 
 if (peek().type == TokenType::DO) {
