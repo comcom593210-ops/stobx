@@ -796,6 +796,90 @@ if (it == variables.end()) {
             return;
         }
 
+if (auto* forNode =
+        dynamic_cast<ForASTNode*>(node)) {
+
+    // Initialization
+    generateStatement(forNode->initialization.get());
+
+    llvm::Function* function =
+        builder->GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* conditionBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "for.condition",
+            function
+        );
+
+    llvm::BasicBlock* bodyBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "for.body",
+            function
+        );
+
+    llvm::BasicBlock* updateBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "for.update",
+            function
+        );
+
+    llvm::BasicBlock* endBlock =
+        llvm::BasicBlock::Create(
+            *context,
+            "for.end",
+            function
+        );
+
+    // Jump to condition
+    builder->CreateBr(conditionBlock);
+
+    // Condition
+    builder->SetInsertPoint(conditionBlock);
+
+    llvm::Value* condition =
+        generateExpression(forNode->condition.get());
+
+    if (!condition->getType()->isIntegerTy(1)) {
+        throw std::runtime_error(
+            "The for condition must be a comparison or logical expression"
+        );
+    }
+
+    builder->CreateCondBr(
+        condition,
+        bodyBlock,
+        endBlock
+    );
+
+    // Body
+    builder->SetInsertPoint(bodyBlock);
+
+    for (const auto& statement : forNode->statements) {
+        generateStatement(statement.get());
+    }
+
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(updateBlock);
+    }
+
+    // Update
+    builder->SetInsertPoint(updateBlock);
+
+    generateStatement(forNode->update.get());
+
+    if (!builder->GetInsertBlock()->getTerminator()) {
+        builder->CreateBr(conditionBlock);
+    }
+
+    // End
+    builder->SetInsertPoint(endBlock);
+
+    return;
+}
+
         if (auto* whileNode =
                 dynamic_cast<WhileASTNode*>(node)) {
 
