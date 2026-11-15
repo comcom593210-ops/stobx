@@ -486,6 +486,96 @@ std::unique_ptr<ASTNode> Parser::parseWhile() {
     return nullptr;
 }
 
+std::unique_ptr<ASTNode> Parser::parseFor() {
+    consume(
+        TokenType::FOR,
+        "Expected 'for'"
+    );
+
+    consumeOpeningParenthesis();
+
+    // Initialization
+    auto initialization = parseVariableDeclaration();
+
+    // Condition
+    auto condition = parseOr();
+
+    consume(
+        TokenType::SEMICOLON,
+        "Expected ';' after for condition"
+    );
+
+    // Update
+    Token nameToken = consume(
+        TokenType::IDENTIFIER,
+        "Expected variable name in for update"
+    );
+
+    consume(
+        TokenType::EQUAL,
+        "Expected '=' after variable name in for update"
+    );
+
+    auto updateValue = parseOr();
+
+    std::unique_ptr<ASTNode> update;
+
+    if (updateValue) {
+        update = std::make_unique<AssignmentASTNode>(
+            nameToken.value,
+            std::move(updateValue)
+        );
+    }
+
+    consumeClosingParenthesis();
+
+    // Body
+    consume(
+        TokenType::LBRACE,
+        "Expected '{' before for body"
+    );
+
+    std::vector<std::unique_ptr<ASTNode>> statements;
+
+    while (
+        peek().type != TokenType::RBRACE &&
+        peek().type != TokenType::END_OF_FILE
+    ) {
+        std::size_t previousCursor = cursor;
+
+        auto statement = parseStatement();
+
+        if (statement) {
+            statements.push_back(std::move(statement));
+        }
+
+        if (cursor == previousCursor) {
+            advance();
+        }
+    }
+
+    consume(
+        TokenType::RBRACE,
+        "Expected '}' after for body"
+    );
+
+    if (
+        initialization &&
+        condition &&
+        update
+    ) {
+        return std::make_unique<ForASTNode>(
+            std::move(initialization),
+            std::move(condition),
+            std::move(update),
+            std::move(statements)
+        );
+    }
+
+    return nullptr;
+}
+
+
 std::unique_ptr<ASTNode> Parser::parseFunction() {
     consume(TokenType::DO, "Expected 'do'");
 
@@ -787,6 +877,10 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     if (peek().type == TokenType::WHILE) {
         return parseWhile();
     }
+
+if (peek().type == TokenType::FOR) {
+    return parseFor();
+}
 
 if (peek().type == TokenType::DO) {
     return parseFunction();

@@ -281,6 +281,12 @@ if (current == ';') {
                     tokenLine, tokenColumn, tokenOffset
                 });    
 
+} else if (ident == "for") {
+                tokens.push_back({
+                    TokenType::FOR, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });    
+
 } else if (ident == "result") {
                 tokens.push_back({
                     TokenType::RESULT, ident,

@@ -32,6 +32,7 @@ enum class TokenType {
     F64,
     BOOL,
     CHAR,
+    FOR,
     STRING,
     REQUIRES,
     ENSURES,
@@ -68,7 +69,7 @@ enum class TokenType {
     VERIFY_END,
     SEMICOLON,
     END_OF_FILE,
-    UNKNOWN
+    UNKNOWN,
 };
 
 struct Token {

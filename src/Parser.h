@@ -139,6 +139,25 @@ public:
           statements(std::move(statements)) {}
 };
 
+class ForASTNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> initialization;
+    std::unique_ptr<ASTNode> condition;
+    std::unique_ptr<ASTNode> update;
+    std::vector<std::unique_ptr<ASTNode>> statements;
+
+    ForASTNode(
+        std::unique_ptr<ASTNode> initialization,
+        std::unique_ptr<ASTNode> condition,
+        std::unique_ptr<ASTNode> update,
+        std::vector<std::unique_ptr<ASTNode>> statements
+    )
+        : initialization(std::move(initialization)),
+          condition(std::move(condition)),
+          update(std::move(update)),
+          statements(std::move(statements)) {}
+};
+
 class ParameterASTNode : public ASTNode {
 public:
     std::string name;
@@ -286,6 +305,7 @@ private:
     std::unique_ptr<ASTNode> parseAssert();
     std::unique_ptr<ASTNode> parseAssume();
     std::unique_ptr<ASTNode> parseContract();
+    std::unique_ptr<ASTNode> parseFor();
 
 };
 

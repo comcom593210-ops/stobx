@@ -1,9 +1,5 @@
-do multiply(a: u32, b: u32) -> u32 {
-    return a * b;
-}
-
-do main() -> u32 {
-    let resu: u32 = multiply(5, 68);
-    pri resu;
-    return 0;
+do main() {
+    for (let i: u32 = 0; i < 10; i = i + 1) {
+        pri i;
+    }
 }
