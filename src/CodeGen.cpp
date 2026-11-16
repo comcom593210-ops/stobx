@@ -940,6 +940,8 @@ if (auto* whileNode =
 
     
     breakTargets.push_back(endBlock);
+continueTargets.push_back(conditionBlock);
+
 
     builder->CreateBr(conditionBlock);
 
