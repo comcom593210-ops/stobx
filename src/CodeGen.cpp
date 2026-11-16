@@ -530,6 +530,17 @@ if (dynamic_cast<BreakASTNode*>(node)) {
     return;
 }
 
+if (dynamic_cast<ContinueASTNode*>(node)) {
+    if (continueTargets.empty()) {
+        throw std::runtime_error(
+            "'continue' can only be used inside a loop"
+        );
+    }
+
+    builder->CreateBr(continueTargets.back());
+
+    return;
+}
 
 if (auto* varNode = dynamic_cast<VariableDeclarationASTNode*>(node)) {
     llvm::Type* varType = getTypeFromName(varNode->type);
@@ -848,6 +859,8 @@ if (auto* forNode =
             function
         );
 breakTargets.push_back(endBlock);
+continueTargets.push_back(updateBlock);
+
     
     builder->CreateBr(conditionBlock);
 
@@ -889,12 +902,14 @@ breakTargets.push_back(endBlock);
         builder->CreateBr(conditionBlock);
     }
 
-    
     builder->SetInsertPoint(endBlock);
 
-    return;
-}
+continueTargets.pop_back();
+breakTargets.pop_back();
 
+return;
+
+}
 
 if (auto* whileNode =
         dynamic_cast<WhileASTNode*>(node)) {
@@ -923,12 +938,12 @@ if (auto* whileNode =
             function
         );
 
-    // Register break destination
+    
     breakTargets.push_back(endBlock);
 
     builder->CreateBr(conditionBlock);
 
-    // Condition
+    
     builder->SetInsertPoint(conditionBlock);
 
     llvm::Value* condition =
@@ -946,7 +961,7 @@ if (auto* whileNode =
         endBlock
     );
 
-    // Body
+    
     builder->SetInsertPoint(bodyBlock);
 
     for (const auto& statement : whileNode->statements) {
@@ -961,9 +976,9 @@ if (auto* whileNode =
         builder->CreateBr(conditionBlock);
     }
 
-    // End
+    
     builder->SetInsertPoint(endBlock);
-
+continueTargets.pop_back();
     breakTargets.pop_back();
 
     return;

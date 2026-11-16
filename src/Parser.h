@@ -163,6 +163,11 @@ public:
     BreakASTNode() = default;
 };
 
+class ContinueASTNode : public ASTNode {
+public:
+    ContinueASTNode() = default;
+};
+
 class ParameterASTNode : public ASTNode {
 public:
     std::string name;
@@ -312,6 +317,7 @@ private:
     std::unique_ptr<ASTNode> parseContract();
     std::unique_ptr<ASTNode> parseFor();
     std::unique_ptr<ASTNode> parseBreak();
+    std::unique_ptr<ASTNode> parseContinue();
 
 };
 

@@ -342,6 +342,20 @@ std::unique_ptr<ASTNode> Parser::parseBitwiseAnd() {
     return node;
 }
 
+std::unique_ptr<ASTNode> Parser::parseContinue() {
+    consume(
+        TokenType::CONTINUE,
+        "Expected 'continue'"
+    );
+
+    consume(
+        TokenType::SEMICOLON,
+        "Expected ';' after continue"
+    );
+
+    return std::make_unique<ContinueASTNode>();
+}
+
 std::unique_ptr<ASTNode> Parser::parseBitwiseXor() {
     auto node = parseBitwiseAnd();
 
@@ -897,6 +911,10 @@ if (peek().type == TokenType::FOR) {
 
 if (peek().type == TokenType::BREAK) {
     return parseBreak();
+}
+
+if (peek().type == TokenType::CONTINUE) {
+    return parseContinue();
 }
 
 if (peek().type == TokenType::DO) {

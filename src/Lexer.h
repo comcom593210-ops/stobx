@@ -34,6 +34,7 @@ enum class TokenType {
     CHAR,
     FOR,
     BREAK,
+    CONTINUE,
     STRING,
     REQUIRES,
     ENSURES,

@@ -294,6 +294,13 @@ if (current == ';') {
                     tokenLine, tokenColumn, tokenOffset
                 });  
 
+
+} else if (ident == "continue") {
+                tokens.push_back({
+                    TokenType::CONTINUE, ident,
+                    tokenLine, tokenColumn, tokenOffset
+                });  
+
 } else if (ident == "result") {
                 tokens.push_back({
                     TokenType::RESULT, ident,

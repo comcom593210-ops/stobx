@@ -29,6 +29,8 @@ std::unordered_map<std::string, VariableInfo> variables;
 
 std::vector<llvm::BasicBlock*> breakTargets;
 
+std::vector<llvm::BasicBlock*> continueTargets;
+
 
     llvm::Value* generateExpression(ASTNode* node);
     llvm::Function* getPrintfFunction();
